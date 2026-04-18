@@ -1,1 +1,65 @@
-IyEvdXNyL2Jpbi9lbnYgcHl0aG9uMwppbXBvcnQgb3MsIHN5cywgbG9nZ2luZywganNvbiwgdGltZQp0cnk6CiAgICBpbXBvcnQgcmVxdWVzdHMKZXhjZXB0OgogICAgcHJpbnQoInBpcCBpbnN0YWxsIHJlcXVlc3RzIikKICAgIHN5cy5leGl0KDEpCgpsb2dnaW5nLmJhc2ljQ29uZmlnKGxldmVsPWxvZ2dpbmcuSU5GTywgZm9ybWF0PSIlKGFzY3RpbWUpcyAtICUobGV2ZWxuYW1lKXMgLSAlKG1lc3NhZ2UpcyIpCmxvZyA9IGxvZ2dpbmcuZ2V0TG9nZ2VyKCkKCmNvb2tpZSA9IG9zLmVudmlyb24uZ2V0KCJORVRFQVNFX0NPT0tJRSIsICIiKQp1c2VyX2lkID0gb3MuZW52aXJvbi5nZXQoIk5FVEVBU0VfVVNFUl9JRCIsICIiKQoKaWYgbm90IGNvb2tpZToKICAgIGxvZy5lcnJvcigi5pyq5om+5YiwIENvb2tpZSDphY3nva7vvJpORVRFQVNFX0NPT0tJRSIpCiAgICBzeXMuZXhpdCgxKQoKcyA9IHJlcXVlc3RzLlNlc3Npb24oKQpzLmhlYWRlcnMudXBkYXRlKHsKICAgICJVc2VyLUFnZW50IjogIk1vemlsbGEvNS4wIChXaW5kb3dzIE5UIDEwLjA7IFdpbjY0OyB4NjQpIEFwcGxlV2ViS2l0LzUzNy4zNiIsCiAgICAiUmVmZXJlciI6ICJodHRwczovL211c2ljLjE2My5jb20vIiwKICAgICJDb250ZW50LVR5cGUiOiAiYXBwbGljYXRpb24veC13d3ctZm9ybS11cmxlbmNvZGVkIiwKICAgICJDb29raWUiOiBjb29raWUsCiAgICAiT3JpZ2luIjogImh0dHBzOi8vbXVzaWMuMTYzLmNvbSIKfSkKCmRlZiBjaGVja19pbl9kYWlseSgpOgogICAgdHJ5OgogICAgICAgIHVybCA9ICJodHRwczovL211c2ljLjE2My5jb20vYXBpL3BvaW50L2RhaWx5VGFzayIKICAgICAgICBkYXRhID0gInR5cGU9MSIgaWYgb3MuZW52aXJvbi5nZXQoIlNJR05fVFlQRSIsICIwIikgPT0gIjEiIGVsc2UgInR5cGU9MCIKICAgICAgICByZXNwID0gcy5wb3N0KHVybCwgZGF0YT1kYXRhKQogICAgICAgIHJlc3VsdCA9IHJlc3AuanNvbigpCiAgICAgICAgaWYgcmVzdWx0LmdldCgiY29kZSIpID09IDIwMDoKICAgICAgICAgICAgbG9nLmluZm8oZiLnrb7liLDmiJDlip/vvJp7cmVzdWx0LmdldCgnbXNnJywgJycpfSIpCiAgICAgICAgZWxpZiByZXN1bHQuZ2V0KCJjb2RlIikgPT0gLTI6CiAgICAgICAgICAgIGxvZy5pbmZvKCLku4rml6Xlt7Lnrb7liLAiKQogICAgICAgIGVsc2U6CiAgICAgICAgICAgIGxvZy5lcnJvcihmIuetvuWIsOWksei01e+8mntyZXN1bHR9IikKICAgIGV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgICAgICBsb2cuZXJyb3IoZiLnrb7liLDlvILluLjvvJp7ZX0iKQoKZGVmIGxpc3Rlbl9tdXNpYygpOgogICAgdHJ5OgogICAgICAgIHVybCA9ICJodHRwczovL211c2ljLjE2My5jb20vYXBpL2ZlZWRiYWNrL3dlYmxvZyIKICAgICAgICBmb3IgaSBpbiByYW5nZSgzKToKICAgICAgICAgICAgbG9ncyA9IGpzb24uZHVtcHMoW3siYWN0aW9uIjogInBsYXkiLCAidHlwZSI6ICJzb25nIiwgInRyYWNrSWQiOiAxMzkzNTM0MjQyLCAidGltZSI6IDMwMH1dKQogICAgICAgICAgICBzLnBvc3QodXJsLCBkYXRhPXsibG9ncyI6IGxvZ3N9LCBoZWFkZXJzPXsiQ29udGVudC1UeXBlIjogImFwcGxpY2F0aW9uL3gtd3d3LWZvcm0tdXJsZW5jb2RlZCJ9KQogICAgICAgICAgICB0aW1lLnNsZWVwKDEpCiAgICAgICAgbG9nLmluZm8oIuaSreaUvuS7u+WKoeWujOaIkCIpCiAgICBleGNlcHQgRXhjZXB0aW9uIGFzIGU6CiAgICAgICAgbG9nLmVycm9yKGYi5pKt5pS+5byC5bi477yae2V9IikKCmRlZiBtYWluKCk6CiAgICBsb2cuaW5mbygiPSIqNTApCiAgICBsb2cuaW5mbygi572R5piT5LqR6Z+z5LmQ6Ieq5Yqo562+5YiwIikKICAgIGxvZy5pbmZvKCI9Iio1MCkKICAgIGNoZWNrX2luX2RhaWx5KCkKICAgIGxpc3Rlbl9tdXNpYygpCiAgICBsb2cuaW5mbygiPSIqNTApCiAgICBsb2cuaW5mbygi5a6M5oiQIikKICAgIGxvZy5pbmZvKCI9Iio1MCkKCmlmIF9fbmFtZV9fID09ICJfX21haW5fXyI6CiAgICBtYWluKCkK
+#!/usr/bin/env python3
+import os, sys, logging, json, time
+try:
+    import requests
+except:
+    print("pip install requests")
+    sys.exit(1)
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+log = logging.getLogger()
+
+cookie = os.environ.get("NETEASE_COOKIE", "")
+user_id = os.environ.get("NETEASE_USER_ID", "")
+
+if not cookie:
+    log.error("未找到 Cookie 配置：NETEASE_COOKIE")
+    sys.exit(1)
+
+s = requests.Session()
+s.headers.update({
+    "User-Agent": "Mozilla/5.0",
+    "Referer": "https://music.163.com/",
+    "Content-Type": "application/x-www-form-urlencoded",
+    "Cookie": cookie,
+    "Origin": "https://music.163.com"
+})
+
+def check_in_daily():
+    try:
+        url = "https://music.163.com/api/point/dailyTask"
+        data = "type=1" if os.environ.get("SIGN_TYPE", "0") == "1" else "type=0"
+        resp = s.post(url, data=data)
+        result = resp.json()
+        if result.get("code") == 200:
+            log.info(f"签到成功：{result.get(msg, )}")
+        elif result.get("code") == -2:
+            log.info("今日已签到")
+        else:
+            log.error(f"签到失败：{result}")
+    except Exception as e:
+        log.error(f"签到异常：{e}")
+
+def listen_music():
+    try:
+        url = "https://music.163.com/api/feedback/weblog"
+        for i in range(3):
+            logs = json.dumps([{"action": "play", "type": "song", "trackId": 1393534242, "time": 300}])
+            s.post(url, data={"logs": logs}, headers={"Content-Type": "application/x-www-form-urlencoded"})
+            time.sleep(1)
+        log.info("播放任务完成")
+    except Exception as e:
+        log.error(f"播放异常：{e}")
+
+def main():
+    log.info("="*50)
+    log.info("网易云音乐自动签到")
+    log.info("="*50)
+    check_in_daily()
+    listen_music()
+    log.info("="*50)
+    log.info("完成")
+    log.info("="*50)
+
+if __name__ == "__main__":
+    main()
