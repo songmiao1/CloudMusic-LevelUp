@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
+import json
+import logging
 import os
 import sys
-import logging
-import json
 import time
-import base64
-from Crypto.Cipher import AES
+
 import requests
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -49,8 +48,12 @@ class NetEaseAPI:
                 logs.append({"action": "play", "type": "song", "trackId": 1393534242, "time": 300})
             data = {"logs": json.dumps(logs)}
             resp = self.session.post(url, data=data)
-            log.info(f"播放任务完成：播放了{count}首歌曲")
-            return True
+            result = resp.json()
+            if resp.ok:
+                log.info(f"播放任务完成：播放了{count}首歌曲")
+                log.info(f"播放任务响应：{result}")
+                return True
+            log.error(f"播放任务失败：{result}")
         except Exception as e:
             log.error(f"播放异常：{e}")
         return False
@@ -69,7 +72,7 @@ def main():
     api.daily_signin(0)  # 手机端
     time.sleep(1)
     api.daily_signin(1)  # PC 端
-    api.listen_music(3)
+    api.listen_music(6)
 
     log.info("=" * 50)
     log.info("签到完成")

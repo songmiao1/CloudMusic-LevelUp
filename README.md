@@ -1,27 +1,49 @@
 # CloudMusic-LevelUp
 
-网易云音乐自动签到项目 - 2026年可用版本
+网易云音乐自动签到与任务领奖项目。
 
-## 功能特性
+## 当前自动化内容
 
-- ✅ 每日自动签到
-- ✅ 音乐合伙人测评
+- ✅ 安卓端/网页端每日签到
+- ✅ 播放上报
 - ✅ 云贝签到
-- ✅ VIP每日签到
-- ✅ 歌曲播放计数增加
-- ✅ GitHub Actions自动化执行
+- ✅ 云贝任务列表拉取
+- ✅ 云贝已完成任务自动领奖
+- ✅ 黑胶签到
+- ✅ 黑胶任务列表拉取
+- ✅ 黑胶成长值任务自动领奖（当接口返回可领奖状态时）
+- ✅ 音乐人签到
+- ✅ 音乐人任务列表拉取
+- ✅ 音乐人已完成任务自动领奖
+- ✅ GitHub Actions 每日自动执行
+
+## 当前不会自动做的任务
+
+以下任务会被拉取并打印到日志里，但默认不会主动替你完成，因为它们需要额外的用户行为或会对账号内容产生副作用：
+
+- 浏览会员中心
+- 红心歌曲
+- 关注歌手
+- 发布图文笔记
+- 浏览黑胶时光机
+- 其他需要跳转页面、投稿或抽奖的音乐人任务
 
 ## 使用说明
 
-1. Fork此仓库到您的GitHub账户
-2. 在Settings > Secrets中配置：
-   - `NETEASE_USER_ID`: 您的网易云音乐用户ID
-   - `NETEASE_COOKIE`: 您的网易云音乐Cookie（包含MUSIC_U和__csrf）
-3. 启用GitHub Actions工作流
+1. Fork 此仓库到你的 GitHub 账户
+2. 在 `Settings > Secrets` 中配置：
+   - `NETEASE_USER_ID`: 网易云音乐用户 ID
+   - `NETEASE_COOKIE`: 网易云音乐 Cookie（至少应包含 `MUSIC_U` 与 `__csrf`）
+3. 启用 GitHub Actions 工作流
 
-## 自动执行
+## 自动执行时间
 
-工作流配置为每天UTC时间08:00自动执行（北京时间16:00）
+工作流配置为每天 `UTC 08:00` 自动执行，对应北京时间 `16:00`。
+
+## 技术说明
+
+- `signin.py` 负责基础签到和播放上报
+- `tasks.js` 基于 [`@neteasecloudmusicapienhanced/api`](https://www.npmjs.com/package/@neteasecloudmusicapienhanced/api) 拉取扩展任务并领取可领奖励
 
 ## 声明
 

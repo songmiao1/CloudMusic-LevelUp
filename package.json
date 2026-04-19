@@ -1,0 +1,13 @@
+{
+  "name": "cloudmusic-levelup",
+  "private": true,
+  "version": "1.0.0",
+  "description": "GitHub Actions automation for NetEase Cloud Music daily tasks",
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js",
+    "tasks": "node tasks.js"
+  },
+  "dependencies": {
+    "@neteasecloudmusicapienhanced/api": "^4.32.0"
+  }
+}
