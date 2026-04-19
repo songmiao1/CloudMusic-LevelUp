@@ -21,7 +21,7 @@ class NetEaseAPI:
             "Content-Type": "application/x-www-form-urlencoded"
         })
 
-    def daily_signin(self, song_type=0):
+    def daily_signin(self, song_type=0, label="签到", optional=False):
         try:
             url = "https://music.163.com/api/point/dailyTask"
             data = f"type={song_type}"
@@ -29,15 +29,21 @@ class NetEaseAPI:
             result = resp.json()
             code = result.get("code", -1)
             if code == 200:
-                log.info(f"签到成功：{result.get('msg', '获得积分')}")
+                log.info(f"{label}成功：{result.get('msg', '获得积分')}")
                 return True
             elif code == -2:
-                log.info("今日已签到")
+                log.info(f"{label}：今日已签到")
                 return True
             else:
-                log.error(f"签到失败：{result}")
+                if optional:
+                    log.warning(f"{label}未完成：{result}")
+                else:
+                    log.error(f"{label}失败：{result}")
         except Exception as e:
-            log.error(f"签到异常：{e}")
+            if optional:
+                log.warning(f"{label}异常：{e}")
+            else:
+                log.error(f"{label}异常：{e}")
         return False
 
     def listen_music(self, count=3):
@@ -69,9 +75,9 @@ def main():
         sys.exit(1)
 
     api = NetEaseAPI(cookie)
-    api.daily_signin(0)  # 手机端
+    api.daily_signin(0, label="手机端签到")  # 手机端
     time.sleep(1)
-    api.daily_signin(1)  # PC 端
+    api.daily_signin(1, label="网页端签到", optional=True)  # PC 端
     api.listen_music(6)
 
     log.info("=" * 50)
