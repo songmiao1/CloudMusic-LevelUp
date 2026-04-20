@@ -1,0 +1,152 @@
+name: Schedule Watchdog
+
+on:
+  schedule:
+    # GitHub Actions uses UTC. These runs cover 07:43, 07:53, 08:08, 08:18, 08:28 Asia/Shanghai.
+    - cron: "43,53 23 * * *"
+    - cron: "8,18,28 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: schedule-watchdog
+  cancel-in-progress: false
+
+jobs:
+  backfill-missing-runs:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - workflow_file: daily-sign.yml
+            workflow_name: Daily Cloud Music Sign-In
+          - workflow_file: bing-rewards.yml
+            workflow_name: Bing Rewards Daily
+          - workflow_file: wps-signin.yml
+            workflow_name: WPS Daily
+
+    steps:
+      - name: Backfill missing workflow run
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GITHUB_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          WORKFLOW_FILE: ${{ matrix.workflow_file }}
+          WORKFLOW_NAME: ${{ matrix.workflow_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          export TZ=Asia/Shanghai
+
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+          import urllib.error
+          import urllib.request
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+
+          repo = os.environ["REPO"]
+          token = os.environ["GITHUB_TOKEN"]
+          workflow_file = os.environ["WORKFLOW_FILE"]
+          workflow_name = os.environ["WORKFLOW_NAME"]
+          default_branch = os.environ["DEFAULT_BRANCH"]
+          timezone = ZoneInfo("Asia/Shanghai")
+          today = datetime.now(timezone).date()
+          summary_path = os.environ["GITHUB_STEP_SUMMARY"]
+
+          headers = {
+              "Accept": "application/vnd.github+json",
+              "Authorization": f"Bearer {token}",
+              "X-GitHub-Api-Version": "2022-11-28",
+          }
+
+          def request(url: str, method: str = "GET", body: dict | None = None):
+              data = None
+              if body is not None:
+                  data = json.dumps(body).encode("utf-8")
+              req = urllib.request.Request(url, data=data, method=method, headers=headers)
+              with urllib.request.urlopen(req) as resp:
+                  return resp.read().decode("utf-8"), resp.status
+
+          runs_url = (
+              f"https://api.github.com/repos/{repo}/actions/workflows/{workflow_file}/runs"
+              f"?branch={default_branch}&per_page=20"
+          )
+          body, _ = request(runs_url)
+          payload = json.loads(body)
+          workflow_runs = payload.get("workflow_runs", [])
+
+          today_runs = []
+          for run in workflow_runs:
+              created_at = run.get("created_at")
+              if not created_at:
+                  continue
+              local_day = datetime.fromisoformat(created_at.replace("Z", "+00:00")).astimezone(timezone).date()
+              if local_day != today:
+                  continue
+              today_runs.append(
+                  {
+                      "id": run.get("id"),
+                      "event": run.get("event"),
+                      "status": run.get("status"),
+                      "conclusion": run.get("conclusion"),
+                      "html_url": run.get("html_url"),
+                  }
+              )
+
+          lines = [
+              f"### {workflow_name}",
+              f"- Local date: {today.isoformat()}",
+          ]
+
+          if today_runs:
+              first = today_runs[0]
+              lines.extend(
+                  [
+                      "- Result: existing run found, skip dispatch",
+                      f"- Latest run: `{first['status']}` / `{first['conclusion']}` / `{first['event']}`",
+                      f"- Link: {first['html_url']}",
+                      "",
+                  ]
+              )
+              with open(summary_path, "a", encoding="utf-8") as fh:
+                  fh.write("\n".join(lines) + "\n")
+              print(f"{workflow_name}: existing run found for {today}, skip dispatch")
+              sys.exit(0)
+
+          dispatch_url = f"https://api.github.com/repos/{repo}/actions/workflows/{workflow_file}/dispatches"
+          try:
+              request(dispatch_url, method="POST", body={"ref": default_branch})
+          except urllib.error.HTTPError as exc:
+              error_body = exc.read().decode("utf-8", errors="replace")
+              lines.extend(
+                  [
+                      "- Result: missing run detected, dispatch failed",
+                      f"- HTTP status: `{exc.code}`",
+                      f"- Error: `{error_body}`",
+                      "",
+                  ]
+              )
+              with open(summary_path, "a", encoding="utf-8") as fh:
+                  fh.write("\n".join(lines) + "\n")
+              raise
+
+          lines.extend(
+              [
+                  "- Result: missing run detected, dispatched fallback run",
+                  f"- Dispatch target: `{default_branch}`",
+                  "",
+              ]
+          )
+          with open(summary_path, "a", encoding="utf-8") as fh:
+              fh.write("\n".join(lines) + "\n")
+
+          print(f"{workflow_name}: no run found for {today}, dispatched fallback run")
+          PY
