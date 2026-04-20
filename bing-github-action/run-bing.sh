@@ -27,12 +27,20 @@ mkdir -p "${RUN_DIR}" "${RUNTIME_DIR}" "${DEBUG_DIR}"
   echo "debug_dir=${DEBUG_DIR}"
 } > "${RUN_META}"
 
-for path in "${SCRIPT_PATH}" "${PYTHON_BIN}"; do
-  if [ ! -e "${path}" ]; then
-    echo "missing required path: ${path}" | tee -a "${RUN_META}" >&2
+if [ ! -e "${SCRIPT_PATH}" ]; then
+  echo "missing required path: ${SCRIPT_PATH}" | tee -a "${RUN_META}" >&2
+  exit 1
+fi
+
+if [[ "${PYTHON_BIN}" == */* ]]; then
+  if [ ! -x "${PYTHON_BIN}" ]; then
+    echo "missing required python executable: ${PYTHON_BIN}" | tee -a "${RUN_META}" >&2
     exit 1
   fi
-done
+elif ! command -v "${PYTHON_BIN}" >/dev/null 2>&1; then
+  echo "missing required python executable in PATH: ${PYTHON_BIN}" | tee -a "${RUN_META}" >&2
+  exit 1
+fi
 
 decode_secret_to_file() {
   local secret_value="$1"
