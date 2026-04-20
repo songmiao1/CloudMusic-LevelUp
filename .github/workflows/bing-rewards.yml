@@ -1,5 +1,8 @@
 name: Bing Rewards Daily
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   schedule:
     # GitHub Actions uses UTC. 07:00 Asia/Shanghai = 23:00 UTC (previous day).
@@ -12,22 +15,54 @@ concurrency:
 
 jobs:
   run:
-    runs-on: [self-hosted, macOS, ARM64, bing-local]
-    timeout-minutes: 90
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
     permissions:
       contents: read
 
     env:
       TZ: Asia/Shanghai
-      QL_DIR: /Users/songmiao/ql
-      BING_SCRIPT_PATH: /Users/songmiao/ql/data/scripts/bingRewards_v1.0.7.py
-      BING_PYTHON_BIN: /Users/songmiao/ql/data/deps/bing_rewards_venv/bin/python3
-      BING_DEBUG_DIR: /Users/songmiao/ql/data/scripts/debug
+      BING_SCRIPT_PATH: /home/runner/work/CloudMusic-LevelUp/CloudMusic-LevelUp/bing-github-action/scripts/bingRewards.py
+      BING_DEBUG_DIR: /home/runner/work/CloudMusic-LevelUp/CloudMusic-LevelUp/bing-github-action/runtime/debug
       BING_SKIP_DEVICE_SECURITY: "1"
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: bing-github-action/requirements.txt
+
+      - name: Install system dependencies
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          if ! command -v google-chrome >/dev/null 2>&1 && ! command -v chromium >/dev/null 2>&1 && ! command -v chromium-browser >/dev/null 2>&1; then
+            sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium || true
+          fi
+          which google-chrome || true
+          which chromium || true
+          which chromium-browser || true
+
+      - name: Install Python dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r bing-github-action/requirements.txt
+
+      - name: Restore Bing runtime cache
+        id: cache-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: bing-github-action/runtime
+          key: bing-runtime-${{ runner.os }}-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            bing-runtime-${{ runner.os }}-${{ github.ref_name }}-
 
       - name: Show runner context
         shell: bash
@@ -35,10 +70,40 @@ jobs:
           uname -a
           whoami
           pwd
-          echo "QL_DIR=$QL_DIR"
-          echo "BING_SCRIPT_PATH=$BING_SCRIPT_PATH"
-          echo "BING_PYTHON_BIN=$BING_PYTHON_BIN"
+          python --version
+          google-chrome --version || chromium --version || chromium-browser --version || true
 
       - name: Run Bing task
         shell: bash
+        env:
+          BING_ACCOUNTS_JSON: ${{ secrets.BING_ACCOUNTS_JSON }}
+          BING_ACCOUNTS_JSON_B64: ${{ secrets.BING_ACCOUNTS_JSON_B64 }}
+          BING_COOKIE_SNAPSHOT: ${{ secrets.BING_COOKIE_SNAPSHOT }}
+          BING_COOKIE_SNAPSHOT_B64: ${{ secrets.BING_COOKIE_SNAPSHOT_B64 }}
+          BING_RUNTIME_SEED_TGZ_B64: ${{ secrets.BING_RUNTIME_SEED_TGZ_B64 }}
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_SSL: ${{ secrets.SMTP_SSL }}
+          SMTP_EMAIL: ${{ secrets.SMTP_EMAIL }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SMTP_NAME: ${{ secrets.SMTP_NAME }}
+          SMTP_TO: ${{ secrets.SMTP_TO }}
         run: bash bing-github-action/run-bing.sh
+
+      - name: Save Bing runtime cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: bing-github-action/runtime
+          key: bing-runtime-${{ runner.os }}-${{ github.ref_name }}-${{ github.run_id }}
+
+      - name: Upload Bing artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bing-rewards-artifacts-${{ github.run_id }}
+          path: |
+            bing-github-action/artifacts
+            bing-github-action/runtime/debug
+          if-no-files-found: ignore
+          retention-days: 7

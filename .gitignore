@@ -3,3 +3,5 @@ node_modules/
 .venv-test/
 __pycache__/
 *.pyc
+bing-github-action/runtime/
+bing-github-action/artifacts/

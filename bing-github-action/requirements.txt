@@ -1,0 +1,5 @@
+DrissionPage==4.1.1.2
+loguru==0.7.3
+pyotp==2.9.0
+pyvirtualdisplay>=3.0
+requests==2.33.1
