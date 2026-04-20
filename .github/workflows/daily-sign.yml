@@ -1,7 +1,8 @@
 name: Daily Cloud Music Sign-In
 on:
   schedule:
-    - cron: '0 8 * * *'
+    # GitHub Actions uses UTC. 07:17 Asia/Shanghai = 23:17 UTC (previous day).
+    - cron: '17 23 * * *'
   workflow_dispatch:
 jobs:
   signin:

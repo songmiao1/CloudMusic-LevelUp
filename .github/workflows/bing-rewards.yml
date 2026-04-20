@@ -5,8 +5,8 @@ env:
 
 on:
   schedule:
-    # GitHub Actions uses UTC. 07:00 Asia/Shanghai = 23:00 UTC (previous day).
-    - cron: "0 23 * * *"
+    # GitHub Actions uses UTC. 07:24 Asia/Shanghai = 23:24 UTC (previous day).
+    - cron: "24 23 * * *"
   workflow_dispatch:
 
 concurrency:
