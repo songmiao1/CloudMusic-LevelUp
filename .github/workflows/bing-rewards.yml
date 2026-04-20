@@ -1,0 +1,53 @@
+name: Bing Rewards Daily
+
+on:
+  schedule:
+    # GitHub Actions uses UTC. 07:00 Asia/Shanghai = 23:00 UTC (previous day).
+    - cron: "0 23 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: bing-rewards-daily
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: [self-hosted, macOS, ARM64, bing-local]
+    timeout-minutes: 90
+    permissions:
+      contents: read
+
+    env:
+      TZ: Asia/Shanghai
+      QL_DIR: /Users/songmiao/ql
+      BING_SCRIPT_PATH: /Users/songmiao/ql/data/scripts/bingRewards_v1.0.7.py
+      BING_PYTHON_BIN: /Users/songmiao/ql/data/deps/bing_rewards_venv/bin/python3
+      BING_DEBUG_DIR: /Users/songmiao/ql/data/scripts/debug
+      BING_SKIP_DEVICE_SECURITY: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show runner context
+        shell: bash
+        run: |
+          uname -a
+          whoami
+          pwd
+          echo "QL_DIR=$QL_DIR"
+          echo "BING_SCRIPT_PATH=$BING_SCRIPT_PATH"
+          echo "BING_PYTHON_BIN=$BING_PYTHON_BIN"
+
+      - name: Run Bing task
+        shell: bash
+        run: bash bing-github-action/run-bing.sh
+
+      - name: Upload Bing debug artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bing-debug-${{ github.run_id }}
+          path: bing-github-action/artifacts/
+          retention-days: 14
+          if-no-files-found: warn
