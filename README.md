@@ -16,6 +16,7 @@
 - ✅ 音乐人任务列表拉取
 - ✅ 音乐人已完成任务自动领奖
 - ✅ GitHub Actions 每日自动执行
+- ✅ WPS 每日签到、任务、抽奖
 
 ## 当前不会自动做的任务
 
@@ -34,16 +35,27 @@
 2. 在 `Settings > Secrets` 中配置：
    - `NETEASE_USER_ID`: 网易云音乐用户 ID
    - `NETEASE_COOKIE`: 网易云音乐 Cookie（至少应包含 `MUSIC_U` 与 `__csrf`）
+   - `WPS_TASK_CK`: WPS Cookie，格式为 `备注#cookie`，多账号按行分隔
+   - `SMTP_SERVER`: 发信服务器，例如 `smtp.qq.com:465`
+   - `SMTP_SSL`: `true` 或 `false`
+   - `SMTP_EMAIL`: 发件邮箱
+   - `SMTP_PASSWORD`: SMTP 授权码
+   - `SMTP_NAME`: 发件人名称
+   - `SMTP_TO`: 收件邮箱，不填时默认发给 `SMTP_EMAIL`
 3. 启用 GitHub Actions 工作流
 
 ## 自动执行时间
 
-工作流配置为每天 `UTC 08:00` 自动执行，对应北京时间 `16:00`。
+仓库目前包含两个定时工作流：
+
+- 网易云：每天 `UTC 08:00`，对应北京时间 `16:00`
+- WPS：每天 `UTC 23:00`，对应北京时间次日 `07:00`
 
 ## 技术说明
 
 - `signin.py` 负责基础签到和播放上报
 - `tasks.js` 基于 [`@neteasecloudmusicapienhanced/api`](https://www.npmjs.com/package/@neteasecloudmusicapienhanced/api) 拉取扩展任务并领取可领奖励
+- `wps-github-action/scripts/wps.py` 负责 WPS 签到、任务、抽奖与成功邮件通知
 
 ## 声明
 
