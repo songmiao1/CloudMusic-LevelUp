@@ -49,12 +49,3 @@ jobs:
       - name: Run Bing task
         shell: bash
         run: bash bing-github-action/run-bing.sh
-
-      - name: Upload Bing debug artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: bing-debug-${{ github.run_id }}
-          path: bing-github-action/artifacts/
-          retention-days: 14
-          if-no-files-found: warn
