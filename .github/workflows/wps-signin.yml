@@ -1,5 +1,8 @@
 name: WPS Daily
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   schedule:
     # GitHub Actions uses UTC. 07:00 Asia/Shanghai = 23:00 UTC (previous day).
