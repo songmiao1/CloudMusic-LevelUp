@@ -5,12 +5,6 @@ on:
     # GitHub Actions uses UTC. 07:00 Asia/Shanghai = 23:00 UTC (previous day).
     - cron: "0 23 * * *"
   workflow_dispatch:
-    inputs:
-      force_run:
-        description: Force full Bing run and bypass daily repeat limit
-        required: false
-        default: true
-        type: boolean
 
 concurrency:
   group: bing-rewards-daily
@@ -30,7 +24,6 @@ jobs:
       BING_PYTHON_BIN: /Users/songmiao/ql/data/deps/bing_rewards_venv/bin/python3
       BING_DEBUG_DIR: /Users/songmiao/ql/data/scripts/debug
       BING_SKIP_DEVICE_SECURITY: "1"
-      BING_FORCE_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.force_run == 'true' && '1' || '0' }}
 
     steps:
       - name: Checkout
