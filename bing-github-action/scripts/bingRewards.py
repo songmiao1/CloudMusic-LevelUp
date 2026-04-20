@@ -1450,11 +1450,25 @@ class TokenManager:
                 except:
                     pass
 
+            if not auth_code:
+                current_url = ""
+                try:
+                    current_url = str(getattr(self.page, "url", "") or "")
+                except Exception:
+                    current_url = ""
+
+                if "code=" in current_url and "oauth20_desktop.srf" in current_url:
+                    parsed = urlparse(current_url)
+                    params = parse_qs(parsed.query)
+                    if "code" in params:
+                        auth_code = params["code"][0]
+
             # 备用: 历史记录方式
+            if not auth_code:
                 try:
                     entries = self.page.run_js("""
                         var entries = performance.getEntriesByType('navigation').concat(performance.getEntriesByType('resource'));
-                        return entries.filter(e => e.name && e.name.includes('code=') && e.name.includes('oauth20_desktop.srf')).map(e => e.name);
+                        return entries.filter(e => e.name && e.name.includes('oauth20_desktop.srf')).map(e => e.name);
                     """)
                     if entries and len(entries) > 0:
                         parsed = urlparse(entries[0])

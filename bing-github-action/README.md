@@ -11,6 +11,8 @@
 
 - `BING_COOKIE_SNAPSHOT` 或 `BING_COOKIE_SNAPSHOT_B64`
   首个账号的 `browser_cookies.txt` 内容，用于首次恢复登录态。
+- `BING_APP_REFRESH_TOKEN` 或 `BING_APP_REFRESH_TOKEN_B64`
+  首个账号的 `app_token.txt` 内容。提供后，云端可直接执行 APP/移动端相关接口，不必依赖网页重新换 token。
 - `BING_RUNTIME_SEED_TGZ_B64`
   `.tar.gz` 压缩后的运行时种子目录，解压后应包含 `bing_accounts.json`、`bing_cache.json`、`user_data_*` 等文件。
 

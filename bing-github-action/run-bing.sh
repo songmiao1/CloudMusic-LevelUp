@@ -103,6 +103,31 @@ PY
       fi
     fi
   fi
+
+  if [ -n "${BING_APP_REFRESH_TOKEN_B64:-}" ] || [ -n "${BING_APP_REFRESH_TOKEN:-}" ]; then
+    local first_account_user
+    first_account_user="$("${PYTHON_BIN}" - <<'PY' "${RUNTIME_DIR}/bing_accounts.json"
+import json, sys
+with open(sys.argv[1], "r", encoding="utf-8") as f:
+    data = json.load(f)
+user = ""
+if isinstance(data, list) and data:
+    user = (data[0].get("username") or "").strip()
+print(user)
+PY
+)"
+    if [ -n "${first_account_user}" ]; then
+      local token_dir
+      token_dir="${RUNTIME_DIR}/user_data_${first_account_user%@*}"
+      if [ ! -s "${token_dir}/app_token.txt" ]; then
+        if [ -n "${BING_APP_REFRESH_TOKEN_B64:-}" ]; then
+          decode_secret_to_file "${BING_APP_REFRESH_TOKEN_B64}" "${token_dir}/app_token.txt" "b64"
+        else
+          decode_secret_to_file "${BING_APP_REFRESH_TOKEN}" "${token_dir}/app_token.txt" "plain"
+        fi
+      fi
+    fi
+  fi
 }
 
 before_debug="$(mktemp)"

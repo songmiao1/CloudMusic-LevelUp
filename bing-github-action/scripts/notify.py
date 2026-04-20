@@ -24,7 +24,8 @@ def send(title: str, content: str):
 
     sender_name = os.environ.get("SMTP_NAME", sender).strip()
     smtp_ssl = _as_bool(os.environ.get("SMTP_SSL", "true"))
-    port = int(os.environ.get("SMTP_PORT", "465" if smtp_ssl else "25"))
+    port_raw = os.environ.get("SMTP_PORT", "").strip()
+    port = int(port_raw) if port_raw else (465 if smtp_ssl else 25)
 
     message = MIMEText(content, "plain", "utf-8")
     message["Subject"] = title
