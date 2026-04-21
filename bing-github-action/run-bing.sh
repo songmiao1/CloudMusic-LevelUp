@@ -247,6 +247,8 @@ start_proxy_if_configured() {
   export NO_PROXY="${NO_PROXY:-127.0.0.1,localhost}"
   export no_proxy="${NO_PROXY}"
   export BING_BROWSER_PROXY_SERVER="${BING_BROWSER_PROXY_SERVER:-socks5://127.0.0.1:7891}"
+  export BING_SEARCH_HOME_URL="${BING_SEARCH_HOME_URL:-https://www.bing.com/?form=ML2PCO}"
+  export BING_SEARCH_REQUEST_URL="${BING_SEARCH_REQUEST_URL:-https://www.bing.com/search}"
 
   echo "[bing-action] proxy enabled: HTTP_PROXY=${HTTP_PROXY}, BING_BROWSER_PROXY_SERVER=${BING_BROWSER_PROXY_SERVER}" | tee -a "${RUN_META}"
   echo "[bing-action] proxy public ip:" | tee -a "${RUN_META}"

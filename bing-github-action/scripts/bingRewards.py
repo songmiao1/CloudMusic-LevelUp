@@ -205,8 +205,8 @@ BING_DOMAIN = "bing.com"
 REWARDS_DOMAIN = "rewards.bing.com"
 BING_URL = "https://www.bing.com/"
 REWARDS_BASE_URL = "https://rewards.bing.com"
-SEARCH_HOME_CN_URL = "https://cn.bing.com/?form=ML2PCO"
-SEARCH_REQUEST_URL = "https://cn.bing.com/search"
+SEARCH_HOME_CN_URL = os.environ.get("BING_SEARCH_HOME_URL", "https://cn.bing.com/?form=ML2PCO").strip() or "https://cn.bing.com/?form=ML2PCO"
+SEARCH_REQUEST_URL = os.environ.get("BING_SEARCH_REQUEST_URL", "https://cn.bing.com/search").strip() or "https://cn.bing.com/search"
 REWARDS_URL = f"{REWARDS_BASE_URL}/dashboard"
 REWARDS_EARN_URL = f"{REWARDS_BASE_URL}/earn"
 REWARDS_POINTS_URL = f"{REWARDS_BASE_URL}/pointsbreakdown"
@@ -241,6 +241,16 @@ SKIP_DEVICE_SECURITY = _env_bool(
     default=(os.environ.get("QL_DIR") is not None or "ql/data/scripts" in os.path.abspath(__file__))
 )
 SCHEDULE_RUN = _env_bool("BING_SCHEDULE_RUN", default=False)
+
+
+def _env_int(name: str, default: int = 0) -> int:
+    try:
+        return max(0, int(str(os.environ.get(name, "")).strip() or default))
+    except Exception:
+        return default
+
+
+SEARCH_LIMIT = _env_int("BING_SEARCH_LIMIT", default=0)
 
 
 
@@ -1960,6 +1970,9 @@ class SearchManager:
             pass
 
         batch_size = remaining
+        if SEARCH_LIMIT > 0:
+            batch_size = min(batch_size, SEARCH_LIMIT)
+            logger.info(f"{LogIndent.ITEM}{LogIcon.INFO} 本次调试限制搜索次数: {batch_size}/{remaining}")
         
         total_success = 0
         check_interval = 3

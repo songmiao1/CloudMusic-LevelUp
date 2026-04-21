@@ -12,6 +12,11 @@ on:
     - cron: "0 23 * * *"
     - cron: "20 23 * * *"
   workflow_dispatch:
+    inputs:
+      search_limit:
+        description: "Optional Bing search limit for debugging. Empty means full run."
+        required: false
+        default: ""
 
 concurrency:
   group: bing-rewards-daily
@@ -30,6 +35,7 @@ jobs:
       BING_DEBUG_DIR: /home/runner/work/CloudMusic-LevelUp/CloudMusic-LevelUp/bing-github-action/runtime/debug
       BING_SKIP_DEVICE_SECURITY: "1"
       BING_SCHEDULE_RUN: ${{ github.event_name == 'schedule' && '1' || '0' }}
+      BING_SEARCH_LIMIT: ${{ github.event.inputs.search_limit || '' }}
 
     steps:
       - name: Checkout
