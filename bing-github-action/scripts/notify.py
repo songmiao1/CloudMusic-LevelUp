@@ -11,11 +11,36 @@ def _as_bool(value: str) -> bool:
     return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
 
 
-def send(title: str, content: str) -> bool:
+def _resolve_server_and_port() -> tuple[str, int | None]:
     server = os.environ.get("SMTP_SERVER", "").strip()
+    port_raw = os.environ.get("SMTP_PORT", "").strip()
+
+    host = server
+    port = None
+
+    if server.startswith("[") and "]:" in server and not port_raw:
+        host, parsed_port = server.rsplit("]:", 1)
+        host = f"{host}]"
+        if parsed_port.isdigit():
+            port = int(parsed_port)
+    elif server.count(":") == 1 and not port_raw:
+        maybe_host, maybe_port = server.rsplit(":", 1)
+        if maybe_port.isdigit():
+            host = maybe_host
+            port = int(maybe_port)
+
+    if port_raw.isdigit():
+        port = int(port_raw)
+
+    return host, port
+
+
+def send(title: str, content: str) -> bool:
+    server, port = _resolve_server_and_port()
     sender = os.environ.get("SMTP_EMAIL", "").strip()
     password = os.environ.get("SMTP_PASSWORD", "").strip()
-    recipients = [item.strip() for item in os.environ.get("SMTP_TO", "").split(",") if item.strip()]
+    recipient_raw = os.environ.get("SMTP_TO", "").strip() or sender
+    recipients = [item.strip() for item in recipient_raw.split(",") if item.strip()]
 
     if not (server and sender and password and recipients):
         print("\n--- [通知] ---")
@@ -26,7 +51,6 @@ def send(title: str, content: str) -> bool:
 
     sender_name = os.environ.get("SMTP_NAME", sender).strip()
     smtp_ssl = _as_bool(os.environ.get("SMTP_SSL", "true"))
-    port_raw = os.environ.get("SMTP_PORT", "").strip()
 
     message = MIMEText(content, "plain", "utf-8")
     message["Subject"] = Header(title, "utf-8")
@@ -34,9 +58,9 @@ def send(title: str, content: str) -> bool:
     message["To"] = ", ".join(recipients)
 
     if smtp_ssl:
-        client = smtplib.SMTP_SSL(server, int(port_raw), timeout=30) if port_raw else smtplib.SMTP_SSL(server, timeout=30)
+        client = smtplib.SMTP_SSL(server, port, timeout=30) if port else smtplib.SMTP_SSL(server, timeout=30)
     else:
-        client = smtplib.SMTP(server, int(port_raw), timeout=30) if port_raw else smtplib.SMTP(server, timeout=30)
+        client = smtplib.SMTP(server, port, timeout=30) if port else smtplib.SMTP(server, timeout=30)
 
     try:
         client.login(sender, password)
