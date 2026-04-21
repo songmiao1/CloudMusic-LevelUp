@@ -5,10 +5,12 @@ env:
 
 on:
   schedule:
-    # GitHub scheduled workflows may be delayed. Use a primary and fallback slot,
-    # then let runtime cache skip duplicates after the first successful run.
-    - cron: "24 23 * * *"
-    - cron: "39 23 * * *"
+    # GitHub scheduled workflows may be delayed by tens of minutes.
+    # Fire several earlier slots, then let runtime cache skip duplicates
+    # after the first successful scheduled execution of the day.
+    - cron: "40 22 * * *"
+    - cron: "0 23 * * *"
+    - cron: "20 23 * * *"
   workflow_dispatch:
 
 concurrency:
