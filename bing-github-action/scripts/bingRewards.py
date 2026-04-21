@@ -235,6 +235,7 @@ SKIP_DEVICE_SECURITY = _env_bool(
     "BING_SKIP_DEVICE_SECURITY",
     default=(os.environ.get("QL_DIR") is not None or "ql/data/scripts" in os.path.abspath(__file__))
 )
+SCHEDULE_RUN = _env_bool("BING_SCHEDULE_RUN", default=False)
 
 
 
@@ -298,11 +299,12 @@ class NotificationManager:
                 print("-------------------------------")
         return MockNotify()
     
-    def send(self, title: str, content: str):
+    def send(self, title: str, content: str) -> bool:
         try:
-            self._client.send(title, content)
+            return bool(self._client.send(title, content))
         except Exception as e:
             logger.warning(f"{LogIcon.WARN} 推送通知失败: {e}")
+            return False
 
 
 class CacheManager:
@@ -3940,6 +3942,10 @@ def main():
     signal.signal(signal.SIGTERM, _signal_handler)
     atexit.register(BrowserManager.cleanup_all)
 
+    if SCHEDULE_RUN and cache_mgr.get_complete_count() > 0:
+        logger.info(f"{LogTag.SYSTEM} 今日定时任务已成功执行过，跳过重复触发")
+        return
+
     if sys.platform != "win32":
         try:
             import subprocess
@@ -4095,8 +4101,11 @@ def main():
                 content = "\n" + "-" * 30 + "\n"
                 content += "\n".join(push_lines)
                 content += "\n" + "-" * 30
-                notify_mgr.send(title, content)
-                logger.success(f"{LogIcon.SUCCESS} {LogTag.SYSTEM} 推送通知已发送")
+                sent = notify_mgr.send(title, content)
+                if sent:
+                    logger.success(f"{LogIcon.SUCCESS} {LogTag.SYSTEM} 推送通知已发送")
+                else:
+                    logger.warning(f"{LogIcon.WARN} {LogTag.SYSTEM} 推送通知发送失败")
             except Exception as e:
                 logger.warning(f"{LogIcon.WARN} {LogTag.SYSTEM} 推送失败: {e}")
 

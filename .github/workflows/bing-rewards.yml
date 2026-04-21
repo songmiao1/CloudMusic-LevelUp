@@ -5,8 +5,10 @@ env:
 
 on:
   schedule:
-    # GitHub Actions uses UTC. 07:24 Asia/Shanghai = 23:24 UTC (previous day).
+    # GitHub scheduled workflows may be delayed. Use a primary and fallback slot,
+    # then let runtime cache skip duplicates after the first successful run.
     - cron: "24 23 * * *"
+    - cron: "39 23 * * *"
   workflow_dispatch:
 
 concurrency:
@@ -25,6 +27,7 @@ jobs:
       BING_SCRIPT_PATH: /home/runner/work/CloudMusic-LevelUp/CloudMusic-LevelUp/bing-github-action/scripts/bingRewards.py
       BING_DEBUG_DIR: /home/runner/work/CloudMusic-LevelUp/CloudMusic-LevelUp/bing-github-action/runtime/debug
       BING_SKIP_DEVICE_SECURITY: "1"
+      BING_SCHEDULE_RUN: ${{ github.event_name == 'schedule' && '1' || '0' }}
 
     steps:
       - name: Checkout
