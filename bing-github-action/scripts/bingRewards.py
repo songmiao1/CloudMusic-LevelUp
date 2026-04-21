@@ -1884,14 +1884,23 @@ class SearchManager:
         maximum = max(0, maximum)
         per_search_points = max(1, per_search_points)
 
-        completed_searches = (progress + per_search_points - 1) // per_search_points if progress > 0 else 0
-        remaining_searches = max(0, maximum - completed_searches) if maximum > 0 else 0
+        # Bing mobile promotions reports PC search progress in points, not search count.
+        # Convert both progress/max into search-count semantics before computing remaining runs.
+        if maximum > 0 and per_search_points > 1:
+            max_searches = (maximum + per_search_points - 1) // per_search_points
+            completed_searches = (progress + per_search_points - 1) // per_search_points if progress > 0 else 0
+        else:
+            max_searches = maximum
+            completed_searches = progress
+
+        completed_searches = min(completed_searches, max_searches) if max_searches > 0 else completed_searches
+        remaining_searches = max(0, max_searches - completed_searches) if max_searches > 0 else 0
 
         return {
             "progress_points": progress,
             "max_points": maximum,
             "progress_searches": completed_searches,
-            "max_searches": maximum,
+            "max_searches": max_searches,
             "remaining_searches": remaining_searches,
             "per_search_points": per_search_points,
         }
