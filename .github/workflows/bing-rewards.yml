@@ -98,6 +98,8 @@ jobs:
           BING_COOKIE_SNAPSHOT: ${{ secrets.BING_COOKIE_SNAPSHOT }}
           BING_COOKIE_SNAPSHOT_B64: ${{ secrets.BING_COOKIE_SNAPSHOT_B64 }}
           BING_RUNTIME_SEED_TGZ_B64: ${{ secrets.BING_RUNTIME_SEED_TGZ_B64 }}
+          BING_PROXY_CONFIG: ${{ secrets.BING_PROXY_CONFIG }}
+          BING_PROXY_CONFIG_B64: ${{ secrets.BING_PROXY_CONFIG_B64 }}
           SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
           SMTP_SSL: ${{ secrets.SMTP_SSL }}

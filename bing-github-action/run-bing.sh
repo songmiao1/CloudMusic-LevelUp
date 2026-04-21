@@ -14,8 +14,13 @@ RUN_META="${RUN_DIR}/run-meta.txt"
 SCRIPT_PATH="${BING_SCRIPT_PATH:-${SCRIPT_DIR}/bingRewards.py}"
 PYTHON_BIN="${BING_PYTHON_BIN:-python3}"
 DEBUG_DIR="${BING_DEBUG_DIR:-${RUNTIME_DIR}/debug}"
+PROXY_DIR="${RUNTIME_DIR}/proxy"
+MIHOMO_BIN="${PROXY_DIR}/mihomo"
+MIHOMO_CONFIG="${PROXY_DIR}/config.yaml"
+MIHOMO_LOG="${RUN_DIR}/mihomo.log"
+MIHOMO_PID=""
 
-mkdir -p "${RUN_DIR}" "${RUNTIME_DIR}" "${DEBUG_DIR}"
+mkdir -p "${RUN_DIR}" "${RUNTIME_DIR}" "${DEBUG_DIR}" "${PROXY_DIR}"
 
 {
   echo "timestamp=${TIMESTAMP}"
@@ -133,9 +138,123 @@ PY
 before_debug="$(mktemp)"
 after_debug="$(mktemp)"
 cleanup() {
+  if [ -n "${MIHOMO_PID}" ]; then
+    kill "${MIHOMO_PID}" >/dev/null 2>&1 || true
+    wait "${MIHOMO_PID}" >/dev/null 2>&1 || true
+  fi
   rm -f "${before_debug}" "${after_debug}"
 }
 trap cleanup EXIT
+
+install_mihomo() {
+  if [ -x "${MIHOMO_BIN}" ]; then
+    return 0
+  fi
+
+  local api_json tag asset_name asset_url archive
+  api_json="$("${PYTHON_BIN}" - <<'PY'
+import json
+import urllib.request
+
+url = "https://api.github.com/repos/MetaCubeX/mihomo/releases/latest"
+with urllib.request.urlopen(url, timeout=30) as resp:
+    data = json.loads(resp.read().decode("utf-8"))
+
+tag = data.get("tag_name", "")
+preferred = [
+    f"mihomo-linux-amd64-compatible-{tag}.gz",
+    f"mihomo-linux-amd64-{tag}.gz",
+]
+assets = data.get("assets", [])
+chosen = None
+for name in preferred:
+    for item in assets:
+        if item.get("name") == name:
+            chosen = item
+            break
+    if chosen:
+        break
+
+if not chosen:
+    for item in assets:
+        name = item.get("name", "")
+        if name.startswith("mihomo-linux-amd64") and name.endswith(".gz") and "go" not in name:
+            chosen = item
+            break
+
+if not chosen:
+    raise SystemExit("no linux amd64 mihomo asset found")
+
+print(tag)
+print(chosen["name"])
+print(chosen["browser_download_url"])
+PY
+)"
+  tag="$(printf '%s\n' "${api_json}" | sed -n '1p')"
+  asset_name="$(printf '%s\n' "${api_json}" | sed -n '2p')"
+  asset_url="$(printf '%s\n' "${api_json}" | sed -n '3p')"
+
+  echo "[bing-action] installing mihomo ${tag} (${asset_name})" | tee -a "${RUN_META}"
+  archive="$(mktemp)"
+  curl -fsSL "${asset_url}" -o "${archive}"
+  gzip -dc "${archive}" > "${MIHOMO_BIN}"
+  rm -f "${archive}"
+  chmod +x "${MIHOMO_BIN}"
+}
+
+start_proxy_if_configured() {
+  if [ -z "${BING_PROXY_CONFIG_B64:-}" ] && [ -z "${BING_PROXY_CONFIG:-}" ]; then
+    echo "[bing-action] proxy not configured" | tee -a "${RUN_META}"
+    return 0
+  fi
+
+  if [ -n "${BING_PROXY_CONFIG_B64:-}" ]; then
+    decode_secret_to_file "${BING_PROXY_CONFIG_B64}" "${MIHOMO_CONFIG}" "b64"
+  else
+    decode_secret_to_file "${BING_PROXY_CONFIG}" "${MIHOMO_CONFIG}" "plain"
+  fi
+
+  install_mihomo
+
+  echo "[bing-action] starting mihomo proxy" | tee -a "${RUN_META}"
+  "${MIHOMO_BIN}" -d "${PROXY_DIR}" -f "${MIHOMO_CONFIG}" > "${MIHOMO_LOG}" 2>&1 &
+  MIHOMO_PID="$!"
+
+  for _ in $(seq 1 30); do
+    if curl -fsS --max-time 2 http://127.0.0.1:9090/proxies >/dev/null 2>&1; then
+      break
+    fi
+    if ! kill -0 "${MIHOMO_PID}" >/dev/null 2>&1; then
+      echo "[bing-action] mihomo exited unexpectedly" | tee -a "${RUN_META}" >&2
+      tail -n 100 "${MIHOMO_LOG}" >&2 || true
+      exit 1
+    fi
+    sleep 1
+  done
+
+  if ! curl -fsS --max-time 2 http://127.0.0.1:9090/proxies >/dev/null 2>&1; then
+    echo "[bing-action] mihomo controller not ready" | tee -a "${RUN_META}" >&2
+    tail -n 100 "${MIHOMO_LOG}" >&2 || true
+    exit 1
+  fi
+
+  export HTTP_PROXY="${BING_HTTP_PROXY:-http://127.0.0.1:7890}"
+  export HTTPS_PROXY="${BING_HTTPS_PROXY:-http://127.0.0.1:7890}"
+  export ALL_PROXY="${BING_ALL_PROXY:-socks5://127.0.0.1:7891}"
+  export http_proxy="${HTTP_PROXY}"
+  export https_proxy="${HTTPS_PROXY}"
+  export all_proxy="${ALL_PROXY}"
+  export NO_PROXY="${NO_PROXY:-127.0.0.1,localhost}"
+  export no_proxy="${NO_PROXY}"
+  export BING_BROWSER_PROXY_SERVER="${BING_BROWSER_PROXY_SERVER:-socks5://127.0.0.1:7891}"
+
+  echo "[bing-action] proxy enabled: HTTP_PROXY=${HTTP_PROXY}, BING_BROWSER_PROXY_SERVER=${BING_BROWSER_PROXY_SERVER}" | tee -a "${RUN_META}"
+  echo "[bing-action] proxy public ip:" | tee -a "${RUN_META}"
+  curl -fsSL --max-time 20 https://api.ipify.org | tee -a "${RUN_META}" || true
+  echo | tee -a "${RUN_META}"
+  curl -fsSL --max-time 20 https://ipinfo.io/json | tee -a "${RUN_META}" || true
+  echo | tee -a "${RUN_META}"
+}
 
 if [ -d "${DEBUG_DIR}" ]; then
   find "${DEBUG_DIR}" -maxdepth 1 -type f -print | sort > "${before_debug}"
@@ -158,6 +277,8 @@ export BING_GITHUB_ARTIFACT_DIR="${RUN_DIR}"
 echo "[bing-action] start ${TIMESTAMP}" | tee -a "${RUN_META}"
 echo "[bing-action] script=${SCRIPT_PATH}" | tee -a "${RUN_META}"
 echo "[bing-action] data_dir=${BING_DATA_DIR}" | tee -a "${RUN_META}"
+
+start_proxy_if_configured
 
 set +e
 "${PYTHON_BIN}" "${SCRIPT_PATH}" 2>&1 | tee "${LOG_FILE}"

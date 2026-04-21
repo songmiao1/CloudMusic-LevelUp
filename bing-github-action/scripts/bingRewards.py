@@ -553,6 +553,10 @@ class BrowserManager:
         co.set_argument("--disable-blink-features=AutomationControlled")
         co.set_argument("--disable-features=AutomationControlled")
         co.set_argument(f"--user-agent={DESKTOP_EDGE_UA}")
+        proxy_server = os.environ.get("BING_BROWSER_PROXY_SERVER", "").strip()
+        if proxy_server:
+            co.set_argument(f"--proxy-server={proxy_server}")
+            logger.info(f"{LogTag.SYSTEM} 浏览器代理已启用: {proxy_server}")
         co.set_pref("intl.accept_languages", "zh-CN,zh")
         co.set_argument("--disable-password-manager-reauthentication")
         co.set_pref("profile.managed_default_content_settings.images", 2)
