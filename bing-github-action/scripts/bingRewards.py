@@ -210,6 +210,11 @@ SEARCH_REQUEST_URL = "https://cn.bing.com/search"
 REWARDS_URL = f"{REWARDS_BASE_URL}/dashboard"
 REWARDS_EARN_URL = f"{REWARDS_BASE_URL}/earn"
 REWARDS_POINTS_URL = f"{REWARDS_BASE_URL}/pointsbreakdown"
+DESKTOP_EDGE_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+)
 
 OAUTH_CLIENT_ID = "0000000040170455"
 OAUTH_REDIRECT_URI = "https://login.live.com/oauth20_desktop.srf"
@@ -545,6 +550,9 @@ class BrowserManager:
         co.set_argument("--mute-audio")
         co.set_argument("--lang=zh-CN")
         co.set_argument("--accept-lang=zh-CN,zh;q=0.9")
+        co.set_argument("--disable-blink-features=AutomationControlled")
+        co.set_argument("--disable-features=AutomationControlled")
+        co.set_argument(f"--user-agent={DESKTOP_EDGE_UA}")
         co.set_pref("intl.accept_languages", "zh-CN,zh")
         co.set_argument("--disable-password-manager-reauthentication")
         co.set_pref("profile.managed_default_content_settings.images", 2)
@@ -1705,6 +1713,144 @@ class SearchManager:
             pass
         return None
 
+    def _apply_search_page_stealth(self):
+        try:
+            self.page.run_js("""
+            try {
+              Object.defineProperty(navigator, 'webdriver', {get: () => undefined, configurable: true});
+              Object.defineProperty(navigator, 'platform', {get: () => 'Win32', configurable: true});
+              Object.defineProperty(navigator, 'language', {get: () => 'zh-CN', configurable: true});
+              Object.defineProperty(navigator, 'languages', {get: () => ['zh-CN', 'zh', 'en-US', 'en'], configurable: true});
+            } catch (e) {}
+            return true;
+            """)
+        except Exception:
+            pass
+
+    def _find_search_input(self, timeout=2):
+        selectors = [
+            '#sb_form_q',
+            'css:input[name="q"]',
+            'xpath://input[@name="q"]',
+        ]
+        for selector in selectors:
+            try:
+                el = self.page.ele(selector, timeout=timeout)
+                if el:
+                    return el
+            except Exception:
+                continue
+        return None
+
+    def _simulate_search_result_browse(self):
+        try:
+            total_height = self.page.run_js(
+                "return Math.max(document.body.scrollHeight || 0, document.documentElement.scrollHeight || 0);"
+            ) or 0
+            total_height = int(total_height) if str(total_height).isdigit() else 0
+        except Exception:
+            total_height = 0
+
+        if total_height <= 0:
+            time.sleep(random.uniform(2.5, 4.0))
+            return
+
+        steps = random.randint(2, 4)
+        for step in range(steps):
+            ratio = (step + 1) / (steps + 1)
+            target = int(total_height * ratio)
+            try:
+                self.page.run_js(f"window.scrollTo({{top: {target}, behavior: 'instant'}});")
+            except Exception:
+                pass
+            time.sleep(random.uniform(1.0, 2.2))
+
+        try:
+            self.page.run_js("window.scrollTo({top: 0, behavior: 'instant'});")
+        except Exception:
+            pass
+        time.sleep(random.uniform(1.0, 2.0))
+
+    def _submit_search_interactive(self, query: str) -> bool:
+        try:
+            input_el = self._find_search_input(timeout=3)
+            if not input_el:
+                return False
+
+            self._apply_search_page_stealth()
+            try:
+                input_el.click()
+            except Exception:
+                pass
+
+            try:
+                input_el.run_js('this.value=""')
+                input_el.run_js("""
+                this.dispatchEvent(new Event('input', {bubbles: true}));
+                this.dispatchEvent(new Event('change', {bubbles: true}));
+                """)
+            except Exception:
+                pass
+
+            input_el.input(query)
+            time.sleep(random.uniform(0.8, 1.6))
+
+            submit_btn = None
+            for selector in ('#sb_form_go', '#search_icon', 'css:button[type="submit"]'):
+                try:
+                    submit_btn = self.page.ele(selector, timeout=1)
+                    if submit_btn:
+                        break
+                except Exception:
+                    continue
+
+            if submit_btn:
+                submit_btn.click()
+            else:
+                try:
+                    self.page.run_js("""
+                    const form = document.querySelector('#sb_form') || document.querySelector('form[action*="/search"]');
+                    if (form) { form.submit(); return true; }
+                    return false;
+                    """)
+                except Exception:
+                    return False
+
+            try:
+                self.page.wait.load_start(timeout=20)
+            except Exception:
+                pass
+            time.sleep(random.uniform(3.5, 5.5))
+            self._simulate_search_result_browse()
+            return True
+        except Exception:
+            return False
+
+    def _submit_search_via_url(self, query: str) -> bool:
+        from urllib.parse import quote
+
+        try:
+            self.page.get(f"{SEARCH_REQUEST_URL}?q={quote(query)}")
+            try:
+                self.page.wait.load_start(timeout=20)
+            except Exception:
+                pass
+            time.sleep(random.uniform(3.5, 5.5))
+            self._apply_search_page_stealth()
+            self._simulate_search_result_browse()
+            return True
+        except Exception:
+            return False
+
+    def _get_verified_search_status(self, refresh_token: str, account_index: int) -> dict:
+        if not refresh_token:
+            return {"valid": False}
+        try:
+            mobile_mgr = AppTaskManager(refresh_token, account_index)
+            return mobile_mgr.get_pc_search_status()
+        except Exception:
+            return {"valid": False}
+
     @staticmethod
     def _build_search_count_state(progress, maximum, per_search_points=3):
         try:
@@ -1795,12 +1941,12 @@ class SearchManager:
             return 0
 
         self.hot_words_mgr.ensure_loaded()
-        from urllib.parse import quote
         try:
             self.page.get(SEARCH_HOME_CN_URL)
             time.sleep(random.uniform(2, 4))
             self.page.refresh()
             time.sleep(random.uniform(2, 4))
+            self._apply_search_page_stealth()
 
             login_btn = self.page.ele('#id_l', timeout=2)
             if login_btn:
@@ -1816,23 +1962,39 @@ class SearchManager:
         no_change_count = 0
         start_points = self._get_points_from_page()
         last_points = start_points
-        
+        verified_progress = progress_searches
+        verified_max = max_searches
+
         logger.info(f"{LogIndent.ITEM}{LogIcon.INFO} 本批次计划搜索 {batch_size} 次，当前积分: {start_points or '未知'}")
-        
+
         for i in range(batch_size):
             search_str = self.hot_words_mgr.get_random_word()
-            search_url = f"{SEARCH_REQUEST_URL}?q={quote(search_str)}&FORM=ASPN01"
             try:
-                self.page.get(search_url)
-                self.page.wait.load_start()
-                time.sleep(random.uniform(4, 7))
+                used_interactive = self._submit_search_interactive(search_str)
+                used_fallback = False
+                if not used_interactive:
+                    used_fallback = self._submit_search_via_url(search_str)
+                if not used_interactive and not used_fallback:
+                    logger.warning(f"{LogIndent.ITEM}{LogIcon.WARN} 搜索提交失败，跳过本次关键词: {search_str}")
+                    continue
                 total_success += 1
                 current_points = self._get_points_from_page()
                 points_str = f"，当前积分: {current_points}" if current_points else ""
                 logger.info(f"{LogIndent.ITEM}{LogIcon.STAR} 搜索 {i + 1}/{batch_size}: {search_str}{points_str}")
                 # 检查积分变化
-                if total_success % check_interval == 0:
+                if total_success % check_interval == 0 or total_success == batch_size:
                     current_points = self._get_points_from_page()
+                    verified_status = self._get_verified_search_status(refresh_token, account_index)
+                    if verified_status.get("valid"):
+                        current_verified = verified_status.get("progress_searches", verified_progress)
+                        verified_max = verified_status.get("max_searches", verified_max)
+                        if current_verified > verified_progress:
+                            logger.info(
+                                f"{LogIndent.ITEM}{LogIcon.UP} API校验: 搜索进度 "
+                                f"{verified_progress}/{verified_max} → {current_verified}/{verified_max}"
+                            )
+                            verified_progress = current_verified
+                            no_change_count = 0
                     if current_points is not None and last_points is not None:
                         delta = current_points - last_points
                         if delta > 0:
@@ -1847,10 +2009,18 @@ class SearchManager:
                 time.sleep(2)
 
         final_points = self._get_points_from_page()
+        verified_final = self._get_verified_search_status(refresh_token, account_index)
+        if verified_final.get("valid"):
+            verified_progress = verified_final.get("progress_searches", verified_progress)
+            verified_max = verified_final.get("max_searches", verified_max)
         if final_points is not None and start_points is not None:
             total_delta = final_points - start_points
             logger.info(f"{LogIndent.ITEM}{LogIcon.DATA} 本批次结果: 搜索 {total_success} 次，积分 {start_points} → {final_points} (+{total_delta})")
-        
+            if total_success > 0 and total_delta <= 0 and verified_progress <= progress_searches:
+                logger.warning(f"{LogIndent.ITEM}{LogIcon.WARN} 搜索已执行 {total_success} 次，但积分与API进度均未增长，保存调试现场")
+                self.browser_mgr.save_screenshot("search_no_score")
+                self.browser_mgr.save_html("search_no_score")
+
         logger.success(f"{LogIndent.ITEM}{LogIcon.TARGET} 本批次搜索完成 {total_success}/{batch_size}")
         return total_success
 
@@ -3883,6 +4053,21 @@ def process_account(browser_mgr, account, hot_words_mgr):
     if auth_mgr.is_site_logged_in(SiteType.BING):
         search_done = search_mgr.complete_search_tasks(idx, saved_token or "")
         result["search_done"] = search_done
+        if saved_token:
+            try:
+                post_search_mgr = AppTaskManager(saved_token, idx)
+                post_search_status = post_search_mgr.get_pc_search_status()
+                if post_search_status.get("valid"):
+                    result["search"] = {
+                        "progress": post_search_status.get("progress", 0),
+                        "max": post_search_status.get("max", 0),
+                        "remaining": post_search_status.get("remaining", 0),
+                        "per_search_points": post_search_status.get("per_search_points", 3),
+                        "progress_searches": post_search_status.get("progress_searches", 0),
+                        "max_searches": post_search_status.get("max_searches", 0),
+                    }
+            except Exception as e:
+                logger.warning(f"{LogIndent.ITEM}{LogIcon.WARN} 搜索后刷新 API 状态失败: {e}")
     else:
         logger.warning(f"{LogIndent.ITEM}{LogIcon.WARN} bing.com 未登录，跳过搜索任务")
         result["search_done"] = 0
