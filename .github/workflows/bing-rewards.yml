@@ -78,6 +78,16 @@ jobs:
           python --version
           google-chrome --version || chromium --version || chromium-browser --version || true
 
+      - name: Show network context
+        shell: bash
+        run: |
+          echo "[public-ip]"
+          curl -fsSL https://api.ipify.org || true
+          echo
+          echo "[ipinfo]"
+          curl -fsSL https://ipinfo.io/json || true
+          echo
+
       - name: Run Bing task
         shell: bash
         env:
